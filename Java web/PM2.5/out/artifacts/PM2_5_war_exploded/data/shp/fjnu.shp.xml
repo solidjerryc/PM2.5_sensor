@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata xml:lang="zh"><Esri><CreaDate>20170516</CreaDate><CreaTime>17415100</CreaTime><ArcGISFormat>1.0</ArcGISFormat><SyncOnce>TRUE</SyncOnce><DataProperties><lineage><Process ToolSource="c:\program files (x86)\arcgis\desktop10.5\ArcToolbox\Toolboxes\Conversion Tools.tbx\JSONToFeatures" Date="20170516" Time="174033">JSONToFeatures C:\Users\JerryC\Documents\ArcGIS\fjnu_FeaturesToJSON2.json C:\Users\JerryC\Documents\ArcGIS\Default.gdb\fjnu_FeaturesToJSON2_JSONToF</Process></lineage></DataProperties></Esri></metadata>

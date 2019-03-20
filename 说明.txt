@@ -1,0 +1,2 @@
+﻿可以登录github查看开源版本，不定期更新
+https://github.com/solidjerryc/PM2.5_sensor

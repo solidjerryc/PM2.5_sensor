@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ECharts</title>
+    <!-- 引入 echarts.js -->
+    <script src="js/echarts.common.min.js"></script>
+    <script src="js/jquery-1.12.0.min.js"></script>
+</head>
+<body>
+<!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+<p>
+    <button onclick="pm2510_option('001')">PM2.5/PM10</button>
+    <button onclick="temperature_option('001')">气温</button>
+    <button onclick="pressure_option('001')">气压</button>
+    <button onclick="humdity_option('001')">湿度</button>
+</p>
+<div id="main" style="width: 600px;height:400px;"></div>
+<script type="text/javascript">
+    // 基于准备好的dom，初始化echarts实例
+    var date;
+    var pm25;
+    var pm10;
+    var temperature;
+    var pressure;
+    var humidity;
+    var point_sig="001";
+    var myChart = echarts.init(document.getElementById('main'));
+
+    function pm2510_option(point){
+        var url="http://localhost:8080/historydata?poi="+point;
+        $.ajax({url:url ,async:true,success:function(result){
+                    date=result.split(';')[0];
+                    pm25=result.split(';')[1];
+                    pm10=result.split(';')[2];
+                    pressure=result.split(';')[3];
+                    temperature=result.split(';')[4];
+                    humidity=result.split(';')[5];
+                    var option = {
+                        title : {
+                            text: 'PM2.5/PM10',
+                            subtext: 'μg/m³'
+                        },
+                        tooltip : {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['PM2.5','PM10']
+                        },
+                        calculable : true,
+                        xAxis : [
+                            {
+                                type : 'category',
+                                boundaryGap : false,
+                                data : eval(date)
+                            }
+                        ],
+                        yAxis : [
+                            {
+                                type : 'value',
+                                axisLabel : {
+                                    formatter: '{value} '
+                                }
+                            }
+                        ],
+                        series : [
+                            {
+                                name:'PM2.5',
+                                type:'line',
+                                data:eval(pm25),
+                                markPoint : {
+                                    data : [
+                                        {type : 'max', name: '最大值'},
+                                        {type : 'min', name: '最小值'}
+                                    ]
+                                },
+                                markLine : {
+                                    data : [
+                                        {type : 'average', name: '平均值'}
+                                    ]
+                                }
+                            },
+                            {
+                                name:'PM10',
+                                type:'line',
+                                data:eval(pm10),
+                                markPoint : {
+                                    data : [
+                                        {type : 'max', name: '最大值'},
+                                        {type : 'min', name: '最小值'}
+                                    ]
+                                },
+                                markLine : {
+                                    data : [
+                                        {type : 'average', name: '平均值'}
+                                    ]
+                                }
+                            }
+                        ]
+                    };
+
+                    myChart.setOption(option);
+                    }
+            }
+        );
+    }
+
+    function temperature_option(point){
+        var url="http://localhost:8080/historydata?poi="+point;
+        $.ajax({url:url ,async:true,success:function(result){
+                    date=result.split(';')[0];
+                    pm25=result.split(';')[1];
+                    pm10=result.split(';')[2];
+                    pressure=result.split(';')[3];
+                    temperature=result.split(';')[4];
+                    humidity=result.split(';')[5];
+                    var option = {
+                        title : {
+                            text: '气温',
+                            subtext: '℃'
+                        },
+                        tooltip : {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['气温']
+                        },
+                        calculable : true,
+                        xAxis : [
+                            {
+                                type : 'category',
+                                boundaryGap : false,
+                                data : eval(date)
+                            }
+                        ],
+                        yAxis : [
+                            {
+                                type : 'value',
+                                axisLabel : {
+                                    formatter: '{value} '
+                                }
+                            }
+                        ],
+                        series : [
+                            {
+                                name:'气温',
+                                type:'line',
+                                data:eval(temperature),
+                                markPoint : {
+                                    data : [
+                                        {type : 'max', name: '最大值'},
+                                        {type : 'min', name: '最小值'}
+                                    ]
+                                },
+                                markLine : {
+                                    data : [
+                                        {type : 'average', name: '平均值'}
+                                    ]
+                                }
+                            }
+                        ]
+                    };
+                    myChart.clear();
+                    myChart.setOption(option);
+                }
+            }
+        );
+    }
+
+    function pressure_option(point){
+        var url="http://localhost:8080/historydata?poi="+point;
+        $.ajax({url:url ,async:true,success:function(result){
+                    date=result.split(';')[0];
+                    pm25=result.split(';')[1];
+                    pm10=result.split(';')[2];
+                    pressure=result.split(';')[3];
+                    temperature=result.split(';')[4];
+                    humidity=result.split(';')[5];
+                    var option = {
+                        title : {
+                            text: '气压',
+                            subtext: 'hPa'
+                        },
+                        tooltip : {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['气压']
+                        },
+                        calculable : true,
+                        xAxis : [
+                            {
+                                type : 'category',
+                                boundaryGap : false,
+                                data : eval(date)
+                            }
+                        ],
+                        yAxis : [
+                            {
+                                type : 'value',
+                                min:1010,
+                                axisLabel : {
+                                    formatter: '{value} '
+                                }
+                            }
+                        ],
+                        series : [
+                            {
+                                name:'气压',
+                                type:'line',
+                                data:eval(pressure),
+                                markPoint : {
+                                    data : [
+                                        {type : 'max', name: '最大值'},
+                                        {type : 'min', name: '最小值'}
+                                    ]
+                                },
+                                markLine : {
+                                    data : [
+                                        {type : 'average', name: '平均值'}
+                                    ]
+                                }
+                            }
+                        ]
+                    };
+                    myChart.clear();
+                    myChart.setOption(option);
+                }
+            }
+        );
+    }
+
+    function humdity_option(point){
+        var url="http://localhost:8080/historydata?poi="+point;
+        $.ajax({url:url ,async:true,success:function(result){
+                    date=result.split(';')[0];
+                    pm25=result.split(';')[1];
+                    pm10=result.split(';')[2];
+                    pressure=result.split(';')[3];
+                    temperature=result.split(';')[4];
+                    humidity=result.split(';')[5];
+                    var option = {
+                        title : {
+                            text: '相对湿度',
+                            subtext: 'hPa'
+                        },
+                        tooltip : {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['相对湿度']
+                        },
+                        calculable : true,
+                        xAxis : [
+                            {
+                                type : 'category',
+                                boundaryGap : false,
+                                data : eval(date)
+                            }
+                        ],
+                        yAxis : [
+                            {
+                                type : 'value',
+                                axisLabel : {
+                                    formatter: '{value} '
+                                }
+                            }
+                        ],
+                        series : [
+                            {
+                                name:'相对湿度',
+                                type:'line',
+                                data:eval(humidity),
+                                markPoint : {
+                                    data : [
+                                        {type : 'max', name: '最大值'},
+                                        {type : 'min', name: '最小值'}
+                                    ]
+                                },
+                                markLine : {
+                                    data : [
+                                        {type : 'average', name: '平均值'}
+                                    ]
+                                }
+                            }
+                        ]
+                    };
+                    myChart.clear();
+                    myChart.setOption(option);
+                }
+            }
+        );
+    }
+
+
+    humdity_option('001');
+    // 使用刚指定的配置项和数据显示图表。
+</script>
+</body>
+</html>

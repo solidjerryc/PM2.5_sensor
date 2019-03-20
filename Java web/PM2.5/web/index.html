@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<!--
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+-->
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="leaflet/leaflet.css" />
+    <link rel="stylesheet" href="css/bootstrap.min.css" />
+    <script src="leaflet/leaflet.js"></script>
+    <script src="js/leaflet.ChineseTmsProviders.js"></script>
+    <script src="js/esri-leaflet.js"></script>
+    <script src="js/echarts.common.min.js"></script>
+    <script src="js/jquery-1.12.0.min.js"></script>
+    <script type="text/javascript" src="js/bootstrap.min.js" ></script>
+    <script src="js/leaflet.ajax.js"></script>
+    <script src="js/leaflet-idw.js"></script>
+    <style>
+        html,
+        body,
+        #map {
+            height: 100%;
+            top: 52px;
+        }
+
+        body {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #selectedFeatures {
+            position: absolute;
+            top: 120px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 1em;
+            display:none;
+        }
+
+        .label {
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: center;
+            margin-top: -1em;
+        }
+
+        .label div {
+            position: relative;
+            left: -50%;
+            width: 100px;
+            text-shadow: 0px 2px 1px rgba(255, 255, 255, 0.85);
+        }
+    </style>
+    <title>PM2.5监测</title>
+</head>
+
+<body>
+    <!--Bootstrap后面加的-->
+    <nav class="navbar navbar-default navbar-fixed-top navbar navbar-inverse" >
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" >
+                    PM2.5监测
+                </a>
+            </div>
+            <div class="collapse navbar-collapse navbar-right " id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li><a role="button" onclick="">PM2.5预测</a></li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" id="changemap">IDW插值<span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a role="button" tabindex="-1" onclick="open_idw('pm25')">PM2.5</a></li>
+                            <li><a role="button" tabindex="-1" onclick="open_idw('pm10')">PM10</a></li>
+                            <li><a role="button" tabindex="-1" onclick="open_idw('temperature')">气温</a></li>
+                            <li><a role="button" tabindex="-1" onclick="open_idw('pressure')">气压</a></li>
+                            <li><a role="button" tabindex="-1" onclick="open_idw('humidity')">湿度</a></li>
+                            <li><a role="button" tabindex="-1" onclick="close_idw()">关闭</a></li>
+                        </ul>
+                    </li>
+                    <li><a href="http://www.86pm25.com/city/fuzhou.html">福州实时AQI</a></li>
+                    <li><a href="team.html" >关于我们</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <!--Bootstrap后面加的-->
+<div id="map"></div>
+<div id="selectedFeatures" class="leaflet-bar map-text">
+    <p>
+        <img src="img/cross.png" width=20px height=20px onclick="hideit()" style="float: right">
+        <button onclick="pm2510_option()">PM2.5/PM10</button>
+        <button onclick="temperature_option()">气温</button>
+        <button onclick="pressure_option()">气压</button>
+        <button onclick="humdity_option()">湿度</button>
+
+    </p>
+    <!--<img src="img/library.png" width="300" height="200">-->
+    <div id="main" style="width: 600px;height:400px;"></div>
+</div>
+
+<script type="text/javascript">
+    var map_sign=1;
+    function hideit(){
+
+        document.getElementById('selectedFeatures').style.display='none';
+    }
+    //后面加的
+    $(document).ready(function(){
+        $(".btn1").click(function(){
+            $("#selectedFeatures").toggle();
+        });
+    });
+
+    //设置天地图的电子地图数据的来源。
+    var normalm = L.tileLayer.chinaProvider('TianDiTu.Normal.Map', {
+        maxZoom: 18,
+        minZoom: 5
+    });
+    var normala = L.tileLayer.chinaProvider('TianDiTu.Normal.Annotion', {
+        maxZoom: 18,
+        minZoom: 5
+    });
+    var imgm = L.tileLayer.chinaProvider('TianDiTu.Satellite.Map', {
+        maxZoom: 18,
+        minZoom: 5
+    });
+    var imga = L.tileLayer.chinaProvider('TianDiTu.Satellite.Annotion', {
+        maxZoom: 18,
+        minZoom: 5
+    });
+    //创建天地图电子地图的图层组，将电子地图与注记图层组合，形成电子地图图层组
+    var normal = L.layerGroup([normalm, normala]);
+    //创建天地图影像地图的图层组，将影像地图与注记图层组合，形成影像地图图层组
+    var image = L.layerGroup([imgm, imga]);
+    var baseLayers = {
+        "地图": normal,
+        "影像": image
+    }
+    var map = L.map('map', {
+        center: [26.0310, 119.2075],
+        zoom: 15,
+        layers: [normal]
+    });
+
+
+
+    var polyJsonlayer = new L.GeoJSON.AJAX("data/fjnu2.geojson");
+    polyJsonlayer.addTo(map);
+
+    //var pm25idw = new L.leafletGeotiff("data/pm2.54.tif");
+    //pm25idw.addTo(map);
+
+    //var lineJsonlayer = new L.GeoJSON.AJAX("data/batterycarline.geojson");
+    //lineJsonlayer.addTo(map);
+
+    //fjnulayer.bringToBack();
+    //lineJsonlayer.bringToFront();
+
+
+    //使用Ajax插件，加载geojson数据。http://localhost:8080/iotservices/senddata
+    var carLocationlayer = new L.GeoJSON.AJAX("recentdata", {
+        //针对每个要素，在加载时绑定一个弹出框
+        onEachFeature: function(feature, layer) {
+
+            layer.bindPopup('地点: '+feature.properties.Name+'<br>时间: '+ feature.properties.date+'<br>PM2.5: '+ feature.properties.pm25+'μg/m³<br>PM10: '+ feature.properties.pm10+'μg/m³<br>气温: '+ feature.properties.temperature+'℃<br>气压: '+ feature.properties.pressure+'hPa<br>湿度: '+ feature.properties.humidity+'%<br><br><button onclick=show(\''+feature.properties.Id.toString()+'\') class="btn1">历史变化</button><button onclick=predict_show(\''+feature.properties.Id.toString()+'\') class="btn1" >PM2.5预测</button>');
+            var centergeojson = feature.geometry.coordinates;
+            var centerlatlng = L.latLng(centergeojson[1], centergeojson[0]);
+            //var center=layer.getBounds().getCenter();
+            //centerlatlng
+            var label = L.marker(layer._latlng, {
+                icon: L.divIcon({
+
+                    iconSize: null,
+                    className: 'label',
+                    html: '<div>' + feature.properties.Name + '</div>'
+                })
+            }).addTo(map);
+        }
+    });
+    carLocationlayer.addTo(map);
+</script>
+
+<script type="text/javascript">
+    var date;
+    var pm25;
+    var pm10;
+    var temperature;
+    var pressure;
+    var humidity;
+    var point_sig="001";
+    var myChart = echarts.init(document.getElementById('main'));
+
+    // 基于准备好的dom，初始化echarts实例
+    function show(point){
+        point_sig=point;
+        pm2510_option();
+    }
+
+    function pm2510_option(){
+        document.getElementById('selectedFeatures').style.display="block";
+        var point=point_sig;
+        var url="historydata?poi="+point;
+        $.ajax({url:url ,async:true,success:function(result){
+                    date=result.split(';')[0];
+                    pm25=result.split(';')[1];
+                    pm10=result.split(';')[2];
+                    pressure=result.split(';')[3];
+                    temperature=result.split(';')[4];
+                    humidity=result.split(';')[5];
+                    var option = {
+                        title : {
+                            text: 'PM2.5/PM10',
+                            subtext: 'μg/m³'
+                        },
+                        tooltip : {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['PM2.5','PM10']
+                        },
+                        calculable : true,
+                        xAxis : [
+                            {
+                                type : 'category',
+                                boundaryGap : false,
+                                data : eval(date)
+                            }
+                        ],
+                        yAxis : [
+                            {
+                                type : 'value',
+                                axisLabel : {
+                                    formatter: '{value} '
+                                }
+                            }
+                        ],
+                        series : [
+                            {
+                                name:'PM2.5',
+                                type:'line',
+                                data:eval(pm25),
+                                markPoint : {
+                                    data : [
+                                        {type : 'max', name: '最大值'},
+                                        {type : 'min', name: '最小值'}
+                                    ]
+                                },
+                                markLine : {
+                                    data : [
+                                        {type : 'average', name: '平均值'}
+                                    ]
+                                }
+                            },
+                            {
+                                name:'PM10',
+                                type:'line',
+                                data:eval(pm10),
+                                markPoint : {
+                                    data : [
+                                        {type : 'max', name: '最大值'},
+                                        {type : 'min', name: '最小值'}
+                                    ]
+                                },
+                                markLine : {
+                                    data : [
+                                        {type : 'average', name: '平均值'}
+                                    ]
+                                }
+                            }
+                        ]
+                    };
+
+                    myChart.setOption(option);
+                }
+            }
+        );
+    }
+
+    function temperature_option(){
+        document.getElementById('selectedFeatures').style.display="block";
+        var point=point_sig;
+        var url="historydata?poi="+point;
+        $.ajax({url:url ,async:true,success:function(result){
+                    date=result.split(';')[0];
+                    pm25=result.split(';')[1];
+                    pm10=result.split(';')[2];
+                    pressure=result.split(';')[3];
+                    temperature=result.split(';')[4];
+                    humidity=result.split(';')[5];
+                    var option = {
+                        title : {
+                            text: '气温',
+                            subtext: '℃'
+                        },
+                        tooltip : {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['气温']
+                        },
+                        calculable : true,
+                        xAxis : [
+                            {
+                                type : 'category',
+                                boundaryGap : false,
+                                data : eval(date)
+                            }
+                        ],
+                        yAxis : [
+                            {
+                                type : 'value',
+                                axisLabel : {
+                                    formatter: '{value} '
+                                }
+                            }
+                        ],
+                        series : [
+                            {
+                                name:'气温',
+                                type:'line',
+                                data:eval(temperature),
+                                markPoint : {
+                                    data : [
+                                        {type : 'max', name: '最大值'},
+                                        {type : 'min', name: '最小值'}
+                                    ]
+                                },
+                                markLine : {
+                                    data : [
+                                        {type : 'average', name: '平均值'}
+                                    ]
+                                }
+                            }
+                        ]
+                    };
+                    myChart.clear();
+                    myChart.setOption(option);
+                }
+            }
+        );
+    }
+
+    function pressure_option(){
+        document.getElementById('selectedFeatures').style.display="block";
+        var point=point_sig;
+        var url="historydata?poi="+point;
+        $.ajax({url:url ,async:true,success:function(result){
+                    date=result.split(';')[0];
+                    pm25=result.split(';')[1];
+                    pm10=result.split(';')[2];
+                    pressure=result.split(';')[3];
+                    temperature=result.split(';')[4];
+                    humidity=result.split(';')[5];
+                    var option = {
+                        title : {
+                            text: '气压',
+                            subtext: 'hPa'
+                        },
+                        tooltip : {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['气压']
+                        },
+                        calculable : true,
+                        xAxis : [
+                            {
+                                type : 'category',
+                                boundaryGap : false,
+                                data : eval(date)
+                            }
+                        ],
+                        yAxis : [
+                            {
+                                type : 'value',
+                                min:1010,
+                                axisLabel : {
+                                    formatter: '{value} '
+                                }
+                            }
+                        ],
+                        series : [
+                            {
+                                name:'气压',
+                                type:'line',
+                                data:eval(pressure),
+                                markPoint : {
+                                    data : [
+                                        {type : 'max', name: '最大值'},
+                                        {type : 'min', name: '最小值'}
+                                    ]
+                                },
+                                markLine : {
+                                    data : [
+                                        {type : 'average', name: '平均值'}
+                                    ]
+                                }
+                            }
+                        ]
+                    };
+                    myChart.clear();
+                    myChart.setOption(option);
+                }
+            }
+        );
+    }
+
+    function humdity_option(){
+        document.getElementById('selectedFeatures').style.display="block";
+        var point=point_sig;
+        var url="historydata?poi="+point;
+        $.ajax({url:url ,async:true,success:function(result){
+                    date=result.split(';')[0];
+                    pm25=result.split(';')[1];
+                    pm10=result.split(';')[2];
+                    pressure=result.split(';')[3];
+                    temperature=result.split(';')[4];
+                    humidity=result.split(';')[5];
+                    var option = {
+                        title : {
+                            text: '相对湿度',
+                            subtext: '%'
+                        },
+                        tooltip : {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['相对湿度']
+                        },
+                        calculable : true,
+                        xAxis : [
+                            {
+                                type : 'category',
+                                boundaryGap : false,
+                                data : eval(date)
+                            }
+                        ],
+                        yAxis : [
+                            {
+                                type : 'value',
+                                axisLabel : {
+                                    formatter: '{value} '
+                                }
+                            }
+                        ],
+                        series : [
+                            {
+                                name:'相对湿度',
+                                type:'line',
+                                data:eval(humidity),
+                                markPoint : {
+                                    data : [
+                                        {type : 'max', name: '最大值'},
+                                        {type : 'min', name: '最小值'}
+                                    ]
+                                },
+                                markLine : {
+                                    data : [
+                                        {type : 'average', name: '平均值'}
+                                    ]
+                                }
+                            }
+                        ]
+                    };
+                    myChart.clear();
+                    myChart.setOption(option);
+                }
+            }
+        );
+    }
+
+
+
+</script>
+<script>
+    var idw=0;
+    function close_idw(){
+        map.removeLayer(idw);//remove();
+    };
+
+    function show_idw(type){
+        map.removeLayer(idw);
+        if(idw==0){
+            show_idw(type);
+        }
+    }
+
+    function open_idw(type){
+        map.removeLayer(idw);
+        var imageUrl = 'data/idw/'+type+'.png',
+            imageBounds = [[26.024998, 119.197349], [26.044477, 119.213273]];
+        idw=new L.imageOverlay(imageUrl, imageBounds,option={opacity:0.5})
+        idw.addTo(map);
+    }
+
+
+</script>
+<script>
+
+    function predict_show(poi){
+        document.getElementById('selectedFeatures').style.display="block";
+        var date;
+        var value;
+
+        //$.ajax({url:url ,async:true,success:function(result){
+        $.ajax({
+            type:'get',
+            url:'data/predict/predict_'+poi,
+            //async:true,
+            success:function(result){
+                    date=eval(result.split(';')[0]).slice(120,270);
+                    value=eval(result.split(';')[1]).slice(120,270);
+
+                    var origin_data=value.slice(0,120);
+                    var predict_data=Array();
+
+                    for(var i=0;i<119;i++){
+                        predict_data=predict_data.concat('');
+                    }
+                    predict_data=predict_data.concat(value.slice(119,150));
+
+
+                    var myChart = echarts.init(document.getElementById('main'));
+                    option = {
+                        title: {
+                            text: '未来半小时PM2.5变化',
+                            subtext: 'μg/m³'
+                        },
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data:['原始值','预测值']
+                        },
+                        xAxis:  {
+                            type: 'category',
+                            boundaryGap: false,
+                            data: date
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: {
+                                formatter: '{value}'
+                            }
+                        },
+                        series: [
+                            {
+                                name:'原始值',
+                                type:'line',
+                                data:origin_data,
+                                markLine: {
+                                    data: [
+                                        {type: 'average', name: '平均值'}
+                                    ]
+                                }
+                            },
+                            {
+                                name:'预测值',
+                                type:'line',
+                                data:predict_data,
+                                markPoint: {
+                                    data: [
+                                        {name: '周最低', value: -2, xAxis: 1, yAxis: -1.5}
+                                    ]
+                                }
+                            }
+                        ]
+                    };
+                    myChart.clear();
+                    myChart.setOption(option);
+                    // 使用刚指定的配置项和数据显示图表。
+                },
+            error: function(XMLHttpRequest, textStatus, errorThrown) {
+                alert(XMLHttpRequest.status);
+                alert(XMLHttpRequest.readyState);
+                alert(textStatus);
+            },
+        });
+
+
+    }
+</script>
+</body>
+
+</html>
